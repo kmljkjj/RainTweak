@@ -1,0 +1,19 @@
+{
+  "name": "Rain",
+  "identifier": "dev.raincord.ios",
+  "sourceURL": "https://github.com/kmljkjj/RainTweak/raw/main/app-repo.json",
+  "apps": [
+    {
+      "name": "Rain",
+      "bundleIdentifier": "com.hammerandchisel.discord",
+      "developerName": "raincord",
+      "versions": []
+    },
+    {
+      "name": "Rain (TestFlight)",
+      "bundleIdentifier": "com.hammerandchisel.discord",
+      "developerName": "raincord",
+      "versions": []
+    }
+  ]
+}

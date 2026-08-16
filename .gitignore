@@ -1,0 +1,10 @@
+.theos/
+packages/
+*.deb
+*.ipa
+Resources/
+OpenInDiscord/
+patcher
+ipa-icons.zip
+.venv-cyan/
+.DS_Store
