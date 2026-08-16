@@ -7,7 +7,14 @@
       "name": "Rain",
       "bundleIdentifier": "com.hammerandchisel.discord",
       "developerName": "raincord",
-      "versions": []
+      "versions": [
+        {
+          "version": "341.0",
+          "date": "2026-08-16",
+          "size": 104891266,
+          "downloadURL": "https://github.com/kmljkjj/RainTweak/releases/download/v341.0/RainTweak.ipa"
+        }
+      ]
     },
     {
       "name": "Rain (TestFlight)",
