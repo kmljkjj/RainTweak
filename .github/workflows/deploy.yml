@@ -6,7 +6,7 @@ on:
     inputs:
       ipa_url:
         default: ""
-        description: "Direct link to the decrypted IPA"
+        description: "Direct URL to a decrypted Discord IPA (must be a real .ipa / zip, not HTML). Prefer a GitHub Releases asset on this repo or loader-ios."
         required: true
         type: string
       release:
@@ -132,10 +132,31 @@ jobs:
         env:
           IPA_URL: ${{ github.event.inputs.ipa_url || inputs.ipa_url }}
         run: |
-          set -e
-          if [ -z "$IPA_URL" ]; then echo "ipa_url is empty"; exit 1; fi
-          curl -L --fail --retry 3 --retry-delay 10 -o discord.ipa "$IPA_URL"
+          set -euo pipefail
+          if [ -z "${IPA_URL:-}" ]; then
+            echo "::error::ipa_url is empty"
+            exit 1
+          fi
+          echo "Downloading: $IPA_URL"
+          curl -L --fail --retry 3 --retry-delay 5 \
+            -A "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" \
+            -H "Accept: application/octet-stream,*/*" \
+            -o discord.ipa "$IPA_URL"
           ls -lh discord.ipa
+          # IPA must be a zip; HTML/403 pages are small and not zip
+          if ! unzip -tq discord.ipa >/dev/null 2>&1; then
+            echo "::error::discord.ipa is not a valid IPA (zip). URL likely returned HTML/403 (e.g. decrypt.day from Actions)."
+            echo "Upload a real Discord IPA to a GitHub Release, then use that asset URL."
+            file discord.ipa || true
+            head -c 200 discord.ipa | xxd || true
+            exit 1
+          fi
+          SIZE=$(stat -f%z discord.ipa 2>/dev/null || stat -c%s discord.ipa)
+          if [ "$SIZE" -lt 50000000 ]; then
+            echo "::error::File too small ($SIZE bytes). Expected ~100MB+ decrypted Discord IPA."
+            exit 1
+          fi
+          echo "IPA OK ($SIZE bytes)"
 
       - name: Clone OpenInDiscord
         uses: actions/checkout@v4
@@ -259,7 +280,6 @@ jobs:
           fail_on_unmatched_files: false
           token: ${{ secrets.GITHUB_TOKEN }}
 
-  # Optional: update AltStore source JSON. Not required for IPA/deb download.
   app-repo:
     if: |
       inputs.caller_workflow != 'ci' &&
