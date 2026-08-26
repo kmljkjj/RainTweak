@@ -1,0 +1,51 @@
+name: Sync from upstream RainTweak
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fetch upstream sources
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/up
+          git clone --depth 1 https://github.com/ra1ncord/RainTweak.git /tmp/up
+
+          # Copy complete tree that the build needs
+          rm -rf Sources Headers
+          mkdir -p Sources Headers
+          cp -a /tmp/up/Sources/. Sources/
+          cp -a /tmp/up/Headers/. Headers/
+          cp /tmp/up/Makefile Makefile
+          cp /tmp/up/RainTweak.plist RainTweak.plist
+          cp /tmp/up/control control
+          cp /tmp/up/patch.plist patch.plist 2>/dev/null || true
+
+          echo "Sources:"
+          ls -la Sources/
+          echo "Headers:"
+          find Headers -type f | head -40
+
+      - name: Commit if changed
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A Sources Headers Makefile RainTweak.plist control patch.plist || true
+          if git diff --staged --quiet; then
+            echo "Already up to date"
+            exit 0
+          fi
+          git commit -m "chore: sync Sources/Headers from ra1ncord/RainTweak"
+          git push origin HEAD:${{ github.ref_name }}
