@@ -1,11 +1,4 @@
 #import <Foundation/Foundation.h>
 
-#ifdef __DEBUG__
-#define NSLog(fmt, ...) NSLog((@"[RainTweak] " fmt), ##__VA_ARGS__)
-#else
-#define NSLog(...)
-#endif
-
-@interface Logger : NSObject
-+ (void)log:(NSString *)message;
-@end
+#define LOG_PREFIX         @"[Rain]"
+#define BunnyLog(fmt, ...) NSLog((LOG_PREFIX @" " fmt), ##__VA_ARGS__)

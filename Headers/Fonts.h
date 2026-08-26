@@ -1,5 +1,5 @@
 #import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
 
-@interface Fonts : NSObject
-+ (void)init;
-@end
+extern NSMutableDictionary<NSString *, NSString *> *fontMap;
+void patchFonts(NSDictionary<NSString *, NSString *> *mainFonts, NSString *fontDefName);
