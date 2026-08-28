@@ -6,7 +6,7 @@ on:
     inputs:
       ipa_url:
         default: ""
-        description: "Direct URL to a decrypted Discord IPA (must be a real .ipa / zip, not HTML). Prefer a GitHub Releases asset on this repo or loader-ios."
+        description: "Direct URL to a decrypted Discord IPA (must be a real .ipa / zip, not HTML). Prefer a GitHub Releases asset."
         required: true
         type: string
       release:
@@ -143,9 +143,8 @@ jobs:
             -H "Accept: application/octet-stream,*/*" \
             -o discord.ipa "$IPA_URL"
           ls -lh discord.ipa
-          # IPA must be a zip; HTML/403 pages are small and not zip
           if ! unzip -tq discord.ipa >/dev/null 2>&1; then
-            echo "::error::discord.ipa is not a valid IPA (zip). URL likely returned HTML/403 (e.g. decrypt.day from Actions)."
+            echo "::error::discord.ipa is not a valid IPA (zip). URL likely returned HTML/403."
             echo "Upload a real Discord IPA to a GitHub Release, then use that asset URL."
             file discord.ipa || true
             head -c 200 discord.ipa | xxd || true
@@ -158,42 +157,7 @@ jobs:
           fi
           echo "IPA OK ($SIZE bytes)"
 
-      - name: Clone OpenInDiscord
-        uses: actions/checkout@v4
-        with:
-          repository: castdrian/OpenInDiscord
-          path: OpenInDiscord
-
-      - name: Build Safari Extension
-        run: |
-          cd OpenInDiscord
-          xcodebuild build \
-            -target "OpenInDiscord Extension" \
-            -configuration Release \
-            -sdk iphoneos \
-            CONFIGURATION_BUILD_DIR="build" \
-            PRODUCT_NAME="OpenInDiscord" \
-            PRODUCT_BUNDLE_IDENTIFIER="com.hammerandchisel.discord.OpenInDiscord" \
-            PRODUCT_MODULE_NAME="OpenInDiscordExt" \
-            SKIP_INSTALL=NO \
-            DEVELOPMENT_TEAM="" \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            ONLY_ACTIVE_ARCH=NO | xcbeautify || xcodebuild build \
-            -target "OpenInDiscord Extension" \
-            -configuration Release \
-            -sdk iphoneos \
-            CONFIGURATION_BUILD_DIR="build" \
-            PRODUCT_NAME="OpenInDiscord" \
-            PRODUCT_BUNDLE_IDENTIFIER="com.hammerandchisel.discord.OpenInDiscord" \
-            PRODUCT_MODULE_NAME="OpenInDiscordExt" \
-            SKIP_INSTALL=NO \
-            DEVELOPMENT_TEAM="" \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            ONLY_ACTIVE_ARCH=NO
+      # OpenInDiscord Safari extension skipped: frequent instant-quit on sideloaded Discord
 
       - name: Extract Values
         run: |
@@ -214,12 +178,13 @@ jobs:
           echo "$PWD/.venv-cyan/bin" >> "$GITHUB_PATH"
           which cyan
 
-      - name: Inject tweak and extension
+      - name: Inject tweak only (no Safari extension)
         run: |
           set -e
           DEB="${{ env.ROOTLESS_DEB_FILE_NAME }}"
           if [ ! -f "$DEB" ]; then DEB=$(ls *.deb packages/*.deb 2>/dev/null | head -1); fi
-          cyan -uwsgq -i discord.ipa -o "${{ env.APP_NAME }}.ipa" -f "$DEB" OpenInDiscord/build/OpenInDiscord.appex
+          echo "Injecting $DEB into discord.ipa"
+          cyan -uwsgq -i discord.ipa -o "${{ env.APP_NAME }}.ipa" -f "$DEB"
 
       - name: Upload ipa as artifact
         uses: actions/upload-artifact@v4
