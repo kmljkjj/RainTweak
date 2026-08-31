@@ -306,39 +306,21 @@ static void executePreloads(jsi::Runtime &runtime, NSURL *rainDir)
     gRuntime = &runtime;
     %orig;
 
-    // Crash-safe: ObjC failures must not kill Discord
-    @try {
-        [loaderConfig loadConfig];
-        NSURL *rainDir = getRainDirectory();
-        if (!rainDir) {
-            BunnyLog(@"didInitializeRuntime: no rain directory");
-            return;
-        }
+    [loaderConfig loadConfig];
+    NSURL *rainDir = getRainDirectory();
+    injectPreBundle(runtime);
 
-        if (isSafeModeEnabled()) {
-            BunnyLog(@"Safe mode ON — skipping Rain bundle injection");
-            return;
-        }
+    NSURL *bundleFileURL = [rainDir URLByAppendingPathComponent:@"bundle.js"];
+    NSData *bundle = [NSData dataWithContentsOfURL:bundleFileURL];
 
-        injectPreBundle(runtime);
-
-        NSURL *bundleFileURL = [rainDir URLByAppendingPathComponent:@"bundle.js"];
-        NSData *bundle = [NSData dataWithContentsOfURL:bundleFileURL];
-
-        if (bundle && bundle.length > 32)
-        {
-            BOOL hermes = isHermesBytecode(bundle);
-            BunnyLog(@"Loading Rain bundle (%lu bytes, hermes=%d)", (unsigned long)bundle.length, hermes ? 1 : 0);
-            [JSI evaluate:bundle tag:@"rain:bundle" runtime:runtime];
-            executePreloads(runtime, rainDir);
-        }
-        else
-        {
-            BunnyLog(@"No cached bundle — download for next launch");
-            downloadBundleForNextLaunch(rainDir);
-        }
-    } @catch (NSException *ex) {
-        BunnyLog(@"didInitializeRuntime ObjC exception: %@", ex);
+    if (bundle && bundle.length > 0)
+    {
+        [JSI evaluate:bundle tag:@"rain:bundle" runtime:runtime];
+        executePreloads(runtime, rainDir);
+    }
+    else
+    {
+        downloadBundleForNextLaunch(rainDir);
     }
 }
 
